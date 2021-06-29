@@ -1,0 +1,32 @@
+{
+  "name": "babel-plugin-rapydscript",
+  "version": "1.0.0",
+  "description": "Load Python/RapydScript code in babel, supports requiring from and to JS/TS.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rafi16jan/babel-plugin-rapydscript.git"
+  },
+  "keywords": [
+    "rapydscript",
+    "python",
+    "transpiler",
+    "loader"
+  ],
+  "author": "Solu Team",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/rafi16jan/babel-plugin-rapydscript/issues"
+  },
+  "homepage": "https://github.com/rafi16jan/babel-plugin-rapydscript#readme",
+  "dependencies": {
+    "rapydscript-ng": "^0.7.21",
+    "temp": "^0.9.4"
+  },
+  "devDependencies": {
+    "babel-core": "^6.26.3"
+  }
+}
