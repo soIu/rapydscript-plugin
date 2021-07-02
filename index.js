@@ -30,11 +30,14 @@ const defaultOptions = {}
 
 const applyTransform = (p, t, state, value, calleeName, moduleString) => {
   const ext = extname(value)
-  if (ext !== '.py' && ext !== '.pyj') return
   const options = Object.assign({}, defaultOptions, state.opts)
   const rootPath = state.file.opts.sourceRoot || process.cwd()
   const scriptDirectory = dirname(resolve(transpiledCache[state.file.opts.filename] || state.file.opts.filename))
   const filePath = resolve(scriptDirectory, value)
+  if (ext !== '.py' && ext !== '.pyj') {
+    if (transpiledCache[state.file.opts.filename]) moduleString.replaceWith(t.StringLiteral(filePath))
+    return
+  }
   if (moduleCache[filePath]) return moduleString.replaceWith(t.StringLiteral(moduleCache[filePath]))
   const fullPath = filePath
   const [temp, tempFile] = getTemp()
