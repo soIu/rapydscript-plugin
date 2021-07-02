@@ -60,7 +60,7 @@ function transformImportsInline ({ types: t }) {
   return {
     visitor: {
       ImportDeclaration (p, state) {
-        applyTransform(p, t, state, p.node.source.value, 'import', p.node.source)
+        applyTransform(p, t, state, p.node.source.value, 'import', {replaceWith: (ast) => (p.node.source = ast)})
       },
       CallExpression (p, state) {
         const callee = p.get('callee')
