@@ -45,7 +45,7 @@ module.exports = [some_function, SomeClass(), SomeClass.some_class_property, Som
 
 # Async/Await
 
-Because we use Kovid Goyal's [fork]() of RapydScript (for stability and good support, and also baselib compatibility), it still doesn't support `async def` and `await` keyword natively. We implement a nice workaround that makes async/asynchronous as a decorator:
+Because we use Kovid Goyal's [fork](https://github.com/kovidgoyal/rapydscript-ng) of RapydScript (for stability and good support, and also baselib compatibility), it still doesn't support `async def` and `await` keyword natively. We implement a nice workaround that makes async/asynchronous as a decorator:
 
 ```python
 @async #Or @asynchronous if your IDE complains about the syntax
