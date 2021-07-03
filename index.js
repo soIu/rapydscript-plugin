@@ -1,6 +1,7 @@
 const { dirname, extname, resolve, join } = require('path')
 
 let tempCache;
+let tempDir;
 //let bufferLength;
 const moduleCache = {};
 const transpiledCache = {};
@@ -17,13 +18,15 @@ const rapydscript_curated_variables = JSON.parse("[\"ρσ_iterator_symbol\",\"ρ
 
 const module_variables = ['module', 'exports', 'async', 'asynchronous'].concat(rapydscript_curated_variables).join(', ')
 
-const getTemp = () => {
+const getTemp = (rootPath) => {
   if (tempCache) return tempCache;
   tempCache = [require('temp').track()];
-  tempCache[1] = tempCache[0].openSync({suffix: '.js'}).path;
+  tempDir = tempCache[0].mkdirSync({dir: rootPath, prefix: '.'});
+  tempCache[1] = tempCache[0].openSync({dir: tempDir, suffix: '.js'}).path;
   const buffer = Buffer.from(rapydscript_variables + require('fs').readFileSync(join(require.resolve('rapydscript-ng'), '../../release/baselib-plain-pretty.js')).toString() + '\nmodule.exports = function (module, exports, rapydscript_module) {\nrapydscript_module(' + module_variables + ')\n};');
   //bufferLength = buffer.length;
   require('fs').writeFileSync(tempCache[1], buffer);
+  process.on('SIGINT', () => process.exit()); //This fixes mkdirSync not deleting directory when CTRL-C'ed
   return tempCache;
 }
 
@@ -36,14 +39,14 @@ const applyTransform = (p, t, state, value, calleeName, moduleString) => {
   const scriptDirectory = dirname(resolve(transpiledCache[state.file.opts.filename] || state.file.opts.filename))
   const filePath = resolve(scriptDirectory, value)
   if (ext !== '.py' && ext !== '.pyj') {
-    if (transpiledCache[state.file.opts.filename] && ext) moduleString.replaceWith(t.StringLiteral(filePath))
+    if (transpiledCache[state.file.opts.filename] && (ext || value.startsWith('.') || value.includes('/'))) moduleString.replaceWith(t.StringLiteral(filePath))
     return
   }
   if (moduleCache[filePath]) return moduleString.replaceWith(t.StringLiteral(moduleCache[filePath]))
   const fullPath = filePath
-  const [temp, tempFile] = getTemp()
-  const tempPath = temp.openSync({suffix: '.js'}).path
-  const newTempPath = temp.openSync({suffix: '.js'}).path
+  const [temp, tempFile] = getTemp(rootPath)
+  const tempPath = temp.openSync({dir: tempDir, suffix: '.js'}).path
+  const newTempPath = temp.openSync({dir: tempDir, suffix: '.js'}).path
   let python_code = require('fs').readFileSync(fullPath).toString()
   python_code = python_code.replace(/await /g, 'awaits + ')
   require('child_process').execSync(process.execPath + ' ' + join(require.resolve('rapydscript-ng'), '../../bin/rapydscript') + ' compile -m  -o ' + tempPath, {input: python_code})
@@ -52,7 +55,8 @@ const applyTransform = (p, t, state, value, calleeName, moduleString) => {
   require('fs').writeFileSync(tempPath, code)
   moduleString.replaceWith(t.StringLiteral(tempPath))
   moduleCache[fullPath] = tempPath
-  transpiledCache[(process.platform === 'darwin' ? '/private' : '') + tempPath] = fullPath
+  transpiledCache[/*(process.platform === 'darwin' ? '/private' : '') +*/ tempPath] = fullPath
+  if (!process.env.NODE_ENV || process.env.NODE_ENV !== 'development') return
   require('fs').watchFile(fullPath, () => {
     console.log('\n' + fullPath + ' changes, recompiling...\n')
     require('child_process').execSync(process.execPath + ' ' + join(require.resolve('rapydscript-ng'), '../../bin/rapydscript') + ' compile -m ' + fullPath + ' -o ' + newTempPath)
