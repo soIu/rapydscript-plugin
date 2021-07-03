@@ -21,7 +21,7 @@ const getTemp = () => {
   if (tempCache) return tempCache;
   tempCache = [require('temp').track()];
   tempCache[1] = tempCache[0].openSync({suffix: '.js'}).path;
-  const buffer = Buffer.from(rapydscript_variables + require('fs').readFileSync(join(__dirname, 'node_modules/rapydscript-ng/release/baselib-plain-pretty.js')).toString() + '\nmodule.exports = function (module, exports, rapydscript_module) {\nrapydscript_module(' + module_variables + ')\n};');
+  const buffer = Buffer.from(rapydscript_variables + require('fs').readFileSync(join(require.resolve('rapydscript-ng'), '../../release/baselib-plain-pretty.js')).toString() + '\nmodule.exports = function (module, exports, rapydscript_module) {\nrapydscript_module(' + module_variables + ')\n};');
   //bufferLength = buffer.length;
   require('fs').writeFileSync(tempCache[1], buffer);
   return tempCache;
@@ -46,7 +46,7 @@ const applyTransform = (p, t, state, value, calleeName, moduleString) => {
   const newTempPath = temp.openSync({suffix: '.js'}).path
   let python_code = require('fs').readFileSync(fullPath).toString()
   python_code = python_code.replace(/await /g, 'awaits + ')
-  require('child_process').execSync(process.execPath + ' ' + join(__dirname, 'node_modules/rapydscript-ng/bin/rapydscript') + ' compile -m  -o ' + tempPath, {input: python_code})
+  require('child_process').execSync(process.execPath + ' ' + join(require.resolve('rapydscript-ng'), '../../bin/rapydscript') + ' compile -m  -o ' + tempPath, {input: python_code})
   let code = require('fs').readFileSync(tempPath).toString().replace(/awaits \+ /g, 'void ')
   code = 'require("' + tempFile + '")(module, module.exports, function (' + module_variables + ') {\n' + code + '\n});'
   require('fs').writeFileSync(tempPath, code)
@@ -55,7 +55,7 @@ const applyTransform = (p, t, state, value, calleeName, moduleString) => {
   transpiledCache[(process.platform === 'darwin' ? '/private' : '') + tempPath] = fullPath
   require('fs').watchFile(fullPath, () => {
     console.log('\n' + fullPath + ' changes, recompiling...\n')
-    require('child_process').execSync(process.execPath + ' ' + join(__dirname, 'node_modules/rapydscript-ng/bin/rapydscript') + ' compile -m ' + fullPath + ' -o ' + newTempPath)
+    require('child_process').execSync(process.execPath + ' ' + join(require.resolve('rapydscript-ng'), '../../bin/rapydscript') + ' compile -m ' + fullPath + ' -o ' + newTempPath)
     code = require('fs').readFileSync(newTempPath).toString()
     code = 'require("' + tempFile + '")(module, module.exports, function (' + module_variables + ') {\n' + code + '\n});'
     require('fs').writeFileSync(tempPath, code)
