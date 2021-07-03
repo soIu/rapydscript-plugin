@@ -42,3 +42,19 @@ class SomeClass:
     
 module.exports = [some_function, SomeClass(), SomeClass.some_class_property, SomeClass().some_object_property, some_function()]
 ```
+
+# Async/Await
+
+Because we use Kovid Goyal's [fork]() of RapydScript (for stability and good support, and also baselib compatibility), it still doesn't support `async def` and `await` keyword natively. We implement a nice workaround that makes async/asynchronous as a decorator:
+
+```python
+@async #Or @asynchronous if your IDE complains about the syntax
+def do_something_async():
+    response = await fetch('/some/route')
+    text = await response.text()
+    returnt text
+    
+do_something_async().then(console.log)
+```
+
+`await` is still available as a keyword.
