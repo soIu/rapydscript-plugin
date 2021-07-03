@@ -7,7 +7,7 @@ const transpiledCache = {};
 
 const rapydscript_variables = `
 var ρσ_iterator_symbol = (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") ? Symbol.iterator : "iterator-Symbol-5d0927e5554349048cf0e3762a228256";
-var ρσ_kwargs_symbol = (typeof Symbol === "function") ? Symbol("kwargs-object") : "kwargs-object-Symbol-5d0927e5554349048cf0e3762a228256";
+var ρσ_kwargs_symbol = (typeof Symbol === "function") ? Symbol.for("kwargs-object") : "kwargs-object-Symbol-5d0927e5554349048cf0e3762a228256";
 var ρσ_cond_temp, ρσ_expr_temp, ρσ_last_exception;
 var ρσ_object_counter = 0;
 var async = asynchronous = (fn) => fn;
@@ -36,7 +36,7 @@ const applyTransform = (p, t, state, value, calleeName, moduleString) => {
   const scriptDirectory = dirname(resolve(transpiledCache[state.file.opts.filename] || state.file.opts.filename))
   const filePath = resolve(scriptDirectory, value)
   if (ext !== '.py' && ext !== '.pyj') {
-    if (transpiledCache[state.file.opts.filename]) moduleString.replaceWith(t.StringLiteral(filePath))
+    if (transpiledCache[state.file.opts.filename] && ext) moduleString.replaceWith(t.StringLiteral(filePath))
     return
   }
   if (moduleCache[filePath]) return moduleString.replaceWith(t.StringLiteral(moduleCache[filePath]))
