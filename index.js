@@ -80,6 +80,7 @@ function applyAsync(state, async_function) {
 
 function applyAwait(state, node) {
   if (!transpiledCache[state.file.opts.filename]) return
+  if (node.argument.type === 'Literal' && node.argument.value === 0) return //To still allow void 0, if it happens to exist in the code
   node.operator = 'await ' //For some reason if we don't add a space it will concatenate the Unary Expression with the argument
 }
 
