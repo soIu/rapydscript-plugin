@@ -1,6 +1,6 @@
 {
   "name": "babel-plugin-rapydscript",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Load Python/RapydScript code in babel, supports requiring from and to JS/TS.",
   "main": "index.js",
   "scripts": {
