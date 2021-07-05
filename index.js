@@ -39,7 +39,7 @@ const applyTransform = (p, t, state, value, calleeName, moduleString) => {
   const scriptDirectory = dirname(resolve(transpiledCache[state.file.opts.filename] || state.file.opts.filename))
   const filePath = resolve(scriptDirectory, value)
   if (ext !== '.py' && ext !== '.pyj') {
-    if (transpiledCache[state.file.opts.filename] && ext && value.startsWith('.')) moduleString.replaceWith(t.StringLiteral(filePath))
+    if (transpiledCache[state.file.opts.filename] && (ext || value.startsWith('.'))) moduleString.replaceWith(t.StringLiteral(filePath))
     return
   }
   if (moduleCache[filePath]) return moduleString.replaceWith(t.StringLiteral(moduleCache[filePath]))
