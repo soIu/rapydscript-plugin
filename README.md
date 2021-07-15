@@ -58,3 +58,7 @@ do_something_async().then(console.log)
 ```
 
 `await` is still available as a keyword.
+
+# Babel's async-to-generator transformer
+
+We currently doesn't support any kind of async to generator transformer as it messes up our async decorator and doesn't detect our await keyword transform. We might find a fix in the future but in the meantime we forcefully disable `@babel/plugin-transform-regenerator` and `@babel/plugin-transform-async-to-generator` by monkeypatching it, it's a bad practice but otherwise our plugin won't be able to use async/await. Pass an environment variable RAPYD_USE_GENERATOR when building or starting a dev server if you insist to use generator, or simply don't use async/await at all.
