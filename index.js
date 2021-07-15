@@ -1,5 +1,16 @@
 const { dirname, extname, resolve, join } = require('path')
 
+if (!process.env.RAPYD_USE_GENERATOR) {
+  try {
+    require('@babel/plugin-transform-regenerator').default = () => ({});
+  }
+  catch (error) {}
+  try {
+    require('@babel/plugin-transform-async-to-generator').default = () => ({});
+  }
+  catch (error) {}
+}
+
 let tempCache;
 let tempDir;
 //let bufferLength;
@@ -59,7 +70,9 @@ const applyTransform = (p, t, state, value, calleeName, moduleString) => {
   if (!process.env.NODE_ENV || process.env.NODE_ENV !== 'development') return
   require('fs').watchFile(fullPath, () => {
     console.log('\n' + fullPath + ' changes, recompiling...\n')
-    require('child_process').execSync(process.execPath + ' ' + join(require.resolve('rapydscript-ng'), '../../bin/rapydscript') + ' compile -m ' + fullPath + ' -o ' + newTempPath)
+    let python_code = require('fs').readFileSync(fullPath).toString()
+    python_code = python_code.replace(/await /g, 'awaits + ')
+    require('child_process').execSync(process.execPath + ' ' + join(require.resolve('rapydscript-ng'), '../../bin/rapydscript') + ' compile -m  -o ' + newTempPath, {input: python_code})
     code = require('fs').readFileSync(newTempPath).toString()
     code = 'require("' + tempFile + '")(module, module.exports, function (' + module_variables + ') {\n' + code + '\n});'
     require('fs').writeFileSync(tempPath, code)
