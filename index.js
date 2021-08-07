@@ -29,11 +29,25 @@ const rapydscript_curated_variables = JSON.parse("[\"ρσ_iterator_symbol\",\"ρ
 
 const module_variables = ['module', 'exports', 'async', 'asynchronous'].concat(rapydscript_curated_variables).join(', ')
 
+function replace_dot(item, index, array) {
+  if (index === 0) return item;
+  else if (array.length === (index + 1)) return '-' + item;
+  return '.' + item;
+}
+
+const openSync = (options) => {
+  const suffix = options.suffix;
+  delete options.suffix;
+  const path = require('temp').path(options).split('.').map(replace_dot).join('') + suffix;
+  require('fs').writeFileSync(path, '');
+  return {path};
+}
+
 const getTemp = (rootPath) => {
   if (tempCache) return tempCache;
   tempCache = [require('temp').track()];
   tempDir = tempCache[0].mkdirSync({dir: rootPath, prefix: '.'});
-  tempCache[1] = tempCache[0].openSync({dir: tempDir, suffix: '.js'}).path;
+  tempCache[1] = openSync({dir: tempDir, suffix: '.js'}).path;
   const buffer = Buffer.from(rapydscript_variables + require('fs').readFileSync(join(require.resolve('rapydscript-ng'), '../../release/baselib-plain-pretty.js')).toString() + '\nmodule.exports = function (module, exports, rapydscript_module) {\nrapydscript_module(' + module_variables + ')\n};');
   //bufferLength = buffer.length;
   require('fs').writeFileSync(tempCache[1], buffer);
@@ -56,8 +70,8 @@ const applyTransform = (p, t, state, value, calleeName, moduleString) => {
   if (moduleCache[filePath]) return moduleString.replaceWith(t.StringLiteral(moduleCache[filePath]))
   const fullPath = filePath
   const [temp, tempFile] = getTemp(rootPath)
-  const tempPath = temp.openSync({dir: tempDir, suffix: '.js'}).path
-  const newTempPath = temp.openSync({dir: tempDir, suffix: '.js'}).path
+  const tempPath = openSync({dir: tempDir, suffix: '.js'}).path
+  const newTempPath = openSync({dir: tempDir, suffix: '.js'}).path
   let python_code = require('fs').readFileSync(fullPath).toString()
   python_code = python_code.replace(/await /g, 'awaits + ')
   require('child_process').execSync(process.execPath + ' ' + join(require.resolve('rapydscript-ng'), '../../bin/rapydscript') + ' compile -m  -o ' + tempPath, {input: python_code})
