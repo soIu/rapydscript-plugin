@@ -43,6 +43,15 @@ class SomeClass:
 module.exports = [some_function, SomeClass(), SomeClass.some_class_property, SomeClass().some_object_property, some_function()]
 ```
 
+# Known Limitation
+
+We choose to make this module a babel plugin instead of a webpack loader because we want to target bundlers as much as possible. Unfortunately making this plugin to be compatible to all bundler forces us to make some sacrifices:
+
+- Because most bundlers ignore loading files outside of project directory to babel loader and sometimes ignore them too in node_modules, there will be some `rapydscript-cache-*` folders that are created on project root during transpilation.
+- Not only the most compatible location is on project root, but metro bundler seems to be a bitch in handling files/folders that have a dot at the start of the name. So the `rapydscript-cache-*` folders can't be hidden with dot (unix).
+- Fortunately these folders will only appear at transpilation. This doesn't have major effects when building for production, but at development (watch mode) the folders will be there until you stop the dev server. Feel free to add `rapydscript-cache-*` to .gitignore to prevent acidentally adding them to your commits.
+- Also if you use async/await, transforming it with async-to-generator doesn't work.
+
 # Async/Await
 
 Because we use Kovid Goyal's [fork](https://github.com/kovidgoyal/rapydscript-ng) of RapydScript (for stability and good support, and also baselib compatibility), it still doesn't support `async def` and `await` keyword natively. We implement a nice workaround that makes async/asynchronous as a decorator:
