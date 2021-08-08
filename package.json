@@ -23,6 +23,7 @@
   },
   "homepage": "https://github.com/rafi16jan/babel-plugin-rapydscript#readme",
   "dependencies": {
+    "proper-lockfile": "^4.1.2",
     "rapydscript-ng": "^0.7.21",
     "temp": "^0.9.4"
   },

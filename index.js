@@ -14,8 +14,8 @@ if (!process.env.RAPYD_USE_GENERATOR) {
 let tempCache;
 let tempDir;
 //let bufferLength;
-const moduleCache = {};
-const transpiledCache = {};
+//const moduleCache = {};
+//const transpiledCache = {};
 
 const rapydscript_variables = `
 var ρσ_iterator_symbol = (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") ? Symbol.iterator : "iterator-Symbol-5d0927e5554349048cf0e3762a228256";
@@ -46,7 +46,7 @@ const openSync = (options) => {
 const getTemp = (rootPath) => {
   if (tempCache) return tempCache;
   tempCache = [require('temp').track()];
-  tempDir = tempCache[0].mkdirSync({dir: rootPath, prefix: '.'});
+  tempDir = tempCache[0].mkdirSync({dir: rootPath, prefix: '\u3164.rapydscript-cache-'});
   tempCache[1] = openSync({dir: tempDir, suffix: '.js'}).path;
   const buffer = Buffer.from(rapydscript_variables + require('fs').readFileSync(join(require.resolve('rapydscript-ng'), '../../release/baselib-plain-pretty.js')).toString() + '\nmodule.exports = function (module, exports, rapydscript_module) {\nrapydscript_module(' + module_variables + ')\n};');
   //bufferLength = buffer.length;
@@ -55,12 +55,43 @@ const getTemp = (rootPath) => {
   return tempCache;
 }
 
+let transpiledTemp;
+let moduleTemp;
+let lockTemp;
+let appendTranspiled;
+let appendModule;
+
+const getCache = (rootPath) => {
+  let is_stale = false;
+  if (!transpiledTemp) transpiledTemp = join(require('os').tmpdir(), 'rapydscript-transpiled-cache-' + Buffer.from(rootPath).toString('base64'));
+  if (!moduleTemp) moduleTemp = join(require('os').tmpdir(), 'rapydscript-module-cache-' + Buffer.from(rootPath).toString('base64'));
+  if (!lockTemp) lockTemp = join(require('os').tmpdir(), Buffer.from(rootPath + '-rapydscript').toString('base64'));
+  if (!require('fs').existsSync(lockTemp)) {
+    require('fs').writeFileSync(lockTemp, '');
+    require('proper-lockfile').lockSync(lockTemp);
+  }
+  else if (!require('proper-lockfile').checkSync(lockTemp)) {
+    is_stale = true;
+    require('proper-lockfile').lockSync(lockTemp);
+  }
+  if (!require('fs').existsSync(transpiledTemp) || is_stale) {
+    require('fs').writeFileSync(transpiledTemp, '"":""');
+  }
+  if (!require('fs').existsSync(moduleTemp) || is_stale) {
+    require('fs').writeFileSync(moduleTemp, '"":""');
+  }
+  if (!appendTranspiled) appendTranspiled = (key, value) => require('fs').appendFileSync(transpiledTemp, ',' + JSON.stringify({[key]: value}).slice(1, -1));
+  if (!appendModule) appendModule = (key, value) => require('fs').appendFileSync(moduleTemp, ',' + JSON.stringify({[key]: value}).slice(1, -1));  
+  return [JSON.parse('{' + require('fs').readFileSync(transpiledTemp).toString() + '}'), JSON.parse('{' + require('fs').readFileSync(moduleTemp).toString() + '}')];
+}
+
 const defaultOptions = {}
 
 const applyTransform = (p, t, state, value, calleeName, moduleString) => {
   const ext = extname(value)
   const options = Object.assign({}, defaultOptions, state.opts)
   const rootPath = state.file.opts.sourceRoot || process.cwd()
+  const [transpiledCache, moduleCache] = getCache(rootPath);
   const scriptDirectory = dirname(resolve(transpiledCache[state.file.opts.filename] || state.file.opts.filename))
   const filePath = resolve(scriptDirectory, value)
   if (ext !== '.py' && ext !== '.pyj') {
@@ -74,13 +105,21 @@ const applyTransform = (p, t, state, value, calleeName, moduleString) => {
   const newTempPath = openSync({dir: tempDir, suffix: '.js'}).path
   let python_code = require('fs').readFileSync(fullPath).toString()
   python_code = python_code.replace(/await /g, 'awaits + ')
-  require('child_process').execSync(process.execPath + ' ' + join(require.resolve('rapydscript-ng'), '../../bin/rapydscript') + ' compile -m  -o ' + tempPath, {input: python_code})
+  try {
+    require('child_process').execSync(process.execPath + ' ' + join(require.resolve('rapydscript-ng'), '../../bin/rapydscript') + ' compile -m  -o ' + tempPath, {input: python_code})
+  }
+  catch (error) {
+    console.error('Failed to transpile ' + fullPath)
+    throw error
+  }
   let code = require('fs').readFileSync(tempPath).toString().replace(/awaits \+ /g, 'void ')
   code = 'require("' + tempFile + '")(module, module.exports, function (' + module_variables + ') {\n' + code + '\n});'
   require('fs').writeFileSync(tempPath, code)
   moduleString.replaceWith(t.StringLiteral(tempPath))
-  moduleCache[fullPath] = tempPath
-  transpiledCache[/*(process.platform === 'darwin' ? '/private' : '') +*/ tempPath] = fullPath
+  //moduleCache[fullPath] = tempPath
+  appendModule(fullPath, tempPath);
+  //transpiledCache[/*(process.platform === 'darwin' ? '/private' : '') +*/ tempPath] = fullPath
+  appendTranspiled(tempPath, fullPath);
   if (!process.env.NODE_ENV || process.env.NODE_ENV !== 'development') return
   require('fs').watchFile(fullPath, () => {
     console.log('\n' + fullPath + ' changes, recompiling...\n')
@@ -94,6 +133,7 @@ const applyTransform = (p, t, state, value, calleeName, moduleString) => {
 }
 
 function applyAsync(state, async_function) {
+  const [transpiledCache] = getCache();
   if (!transpiledCache[state.file.opts.filename]) return
   if (!async_function) return
   if (async_function.node && async_function.node.type === 'CallExpression') {
@@ -110,6 +150,7 @@ function applyAsync(state, async_function) {
 }
 
 function applyAwait(state, node) {
+  const [transpiledCache] = getCache();
   if (!transpiledCache[state.file.opts.filename]) return
   if (node.argument.type === 'Literal' && node.argument.value === 0) return //To still allow void 0, if it happens to exist in the code
   node.operator = 'await ' //For some reason if we don't add a space it will concatenate the Unary Expression with the argument
@@ -122,6 +163,7 @@ function transformImportsInline ({ types: t }) {
         applyTransform(p, t, state, p.node.source.value, 'import', {replaceWith: (ast) => (p.node.source = ast)})
       },
       CallExpression (p, state) {
+
         const callee = p.get('callee')
         if (!callee.isIdentifier()) return
         if (!callee.equals('name', 'require')) {
