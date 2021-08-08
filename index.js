@@ -46,7 +46,7 @@ const openSync = (options) => {
 const getTemp = (rootPath) => {
   if (tempCache) return tempCache;
   tempCache = [require('temp').track()];
-  tempDir = tempCache[0].mkdirSync({dir: rootPath, prefix: '\u3164.rapydscript-cache-'});
+  tempDir = tempCache[0].mkdirSync({dir: rootPath, prefix: 'rapydscript-cache-'});
   tempCache[1] = openSync({dir: tempDir, suffix: '.js'}).path;
   const buffer = Buffer.from(rapydscript_variables + require('fs').readFileSync(join(require.resolve('rapydscript-ng'), '../../release/baselib-plain-pretty.js')).toString() + '\nmodule.exports = function (module, exports, rapydscript_module) {\nrapydscript_module(' + module_variables + ')\n};');
   //bufferLength = buffer.length;
