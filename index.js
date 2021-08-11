@@ -120,7 +120,7 @@ const applyTransform = (p, t, state, value, calleeName, moduleString) => {
   appendModule(fullPath, tempPath);
   //transpiledCache[/*(process.platform === 'darwin' ? '/private' : '') +*/ tempPath] = fullPath
   appendTranspiled(tempPath, fullPath);
-  if (!process.env.NODE_ENV || process.env.NODE_ENV !== 'development') return
+  if ((!process.env.BABEL_ENV || process.env.BABEL_ENV !== 'development') && (!process.env.NODE_ENV || process.env.NODE_ENV !== 'development')) return
   require('fs').watchFile(fullPath, () => {
     console.log('\n' + fullPath + ' changes, recompiling...\n')
     let python_code = require('fs').readFileSync(fullPath).toString()
