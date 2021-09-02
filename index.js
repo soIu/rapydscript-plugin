@@ -126,7 +126,7 @@ const applyTransform = (p, t, state, value, calleeName, moduleString) => {
     let python_code = require('fs').readFileSync(fullPath).toString()
     python_code = python_code.replace(/await /g, 'awaits + ')
     require('child_process').execSync(process.execPath + ' ' + join(require.resolve('rapydscript-ng'), '../../bin/rapydscript') + ' compile -m  -o ' + newTempPath, {input: python_code})
-    code = require('fs').readFileSync(newTempPath).toString()
+    code = require('fs').readFileSync(newTempPath).toString().replace(/awaits \+ /g, 'void ')
     code = 'require("' + tempFile + '")(module, module.exports, function (' + module_variables + ') {\n' + code + '\n});'
     require('fs').writeFileSync(tempPath, code)
   });
