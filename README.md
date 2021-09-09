@@ -50,7 +50,6 @@ We choose to make this module a babel plugin instead of a webpack loader because
 - Because most bundlers ignore loading files outside of project directory to babel loader and sometimes ignore them too in node_modules, there will be some `rapydscript-cache-*` folders that are created on project root during transpilation.
 - Not only the most compatible location is on project root, but metro bundler seems to be a bitch in handling files/folders that have a dot at the start of the name. So the `rapydscript-cache-*` folders can't be hidden with dot (unix).
 - Fortunately these folders will only appear at transpilation. This doesn't have major effects when building for production, but at development (watch mode) the folders will be there until you stop the dev server. Feel free to add `rapydscript-cache-*` to .gitignore to prevent acidentally adding them to your commits.
-- Also if you use async/await, transforming it with async-to-generator doesn't work.
 
 # Async/Await
 
@@ -67,7 +66,3 @@ do_something_async().then(console.log)
 ```
 
 `await` is still available as a keyword.
-
-# Babel's async-to-generator transformer
-
-We currently doesn't support any kind of async to generator transformer as it messes up our async decorator and doesn't detect our await keyword transform. We might find a fix in the future but in the meantime we forcefully disable `@babel/plugin-transform-regenerator` and `@babel/plugin-transform-async-to-generator` by monkeypatching it, it's a bad practice but otherwise our plugin won't be able to use async/await. Pass an environment variable RAPYD_USE_GENERATOR when building or starting a dev server if you insist to use generator, or simply don't use async/await at all.

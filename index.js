@@ -1,16 +1,5 @@
 const { dirname, extname, resolve, join } = require('path')
 
-if (!process.env.RAPYD_USE_GENERATOR) {
-  try {
-    require('@babel/plugin-transform-regenerator').default = () => ({});
-  }
-  catch (error) {}
-  try {
-    require('@babel/plugin-transform-async-to-generator').default = () => ({});
-  }
-  catch (error) {}
-}
-
 let tempCache;
 let tempDir;
 //let bufferLength;
