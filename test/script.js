@@ -1,4 +1,4 @@
-var transformFileSync = require('babel-core').transformFileSync
+var transformFileSync = require('@babel/core').transformFileSync
 var path = require('path')
 var fs = require('fs')
 

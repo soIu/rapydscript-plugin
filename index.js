@@ -109,8 +109,9 @@ const applyTransform = (p, t, state, value, calleeName, moduleString) => {
     require('child_process').execSync(process.execPath + ' ' + join(require.resolve('rapydscript-ng'), '../../bin/rapydscript') + ' compile -m  -o ' + tempPath, {input: python_code})
   }
   catch (error) {
-    console.error('Failed to transpile ' + fullPath)
-    throw error
+    //console.error('Failed to transpile ' + fullPath)
+    //throw error
+    throw new Error('Failed to transpile ' + fullPath + '\n' + error.toString());
   }
   let code = require('fs').readFileSync(tempPath).toString().replace(/awaits \+ /g, 'void ')
   code = 'require("' + tempFile + '")(module, module.exports, function (' + module_variables + ') {\n' + code + '\n});'
@@ -125,7 +126,12 @@ const applyTransform = (p, t, state, value, calleeName, moduleString) => {
     console.log('\n' + fullPath + ' changes, recompiling...\n')
     let python_code = require('fs').readFileSync(fullPath).toString()
     python_code = python_code.replace(/await /g, 'awaits + ')
-    require('child_process').execSync(process.execPath + ' ' + join(require.resolve('rapydscript-ng'), '../../bin/rapydscript') + ' compile -m  -o ' + newTempPath, {input: python_code})
+    try {
+      require('child_process').execSync(process.execPath + ' ' + join(require.resolve('rapydscript-ng'), '../../bin/rapydscript') + ' compile -m  -o ' + newTempPath, {input: python_code})
+    }
+    catch (error) {
+      throw new Error('Failed to transpile ' + fullPath + '\n' + error.toString());
+    }
     code = require('fs').readFileSync(newTempPath).toString().replace(/awaits \+ /g, 'void ')
     code = 'require("' + tempFile + '")(module, module.exports, function (' + module_variables + ') {\n' + code + '\n});'
     require('fs').writeFileSync(tempPath, code)
@@ -149,11 +155,13 @@ function applyAsync(state, async_function) {
   else if (async_function.node && async_function.node.type === 'FunctionExpression') async_function.node.async = true
 }
 
-function applyAwait(state, node) {
+function applyAwait(state, p, t) {
   const [transpiledCache] = getCache();
   if (!transpiledCache[state.file.opts.filename]) return
-  if (node.argument.type === 'Literal' && node.argument.value === 0) return //To still allow void 0, if it happens to exist in the code
-  node.operator = 'await ' //For some reason if we don't add a space it will concatenate the Unary Expression with the argument
+  if (p.node.argument.type === 'Literal' && node.argument.value === 0) return //To still allow void 0, if it happens to exist in the code
+  //node.operator = 'await ' //For some reason if we don't add a space it will concatenate the Unary Expression with the argument
+  //console.log(t.UnaryExpression)
+  p.replaceWith(t.awaitExpression(p.node.argument))
 }
 
 function transformImportsInline ({ types: t }) {
@@ -180,7 +188,7 @@ function transformImportsInline ({ types: t }) {
       },
       UnaryExpression(p, state) {
         if (p.node.operator !== 'void') return
-        applyAwait(state, p.node)
+        applyAwait(state, p, t)
       }
     }
   }
