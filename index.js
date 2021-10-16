@@ -29,6 +29,7 @@ const openSync = (options) => {
   delete options.suffix;
   const path = require('temp').path(options).split('.').map(replace_dot).join('') + suffix;
   require('fs').writeFileSync(path, '');
+  console.log(path);
   return {path};
 }
 
@@ -57,11 +58,11 @@ const getCache = (rootPath) => {
   if (!lockTemp) lockTemp = join(require('os').tmpdir(), Buffer.from(rootPath + '-rapydscript').toString('base64'));
   if (!require('fs').existsSync(lockTemp)) {
     require('fs').writeFileSync(lockTemp, '');
-    require('proper-lockfile').lockSync(lockTemp);
+    require('proper-lockfile').lockSync(lockTemp, {stale: 30 * 1000});
   }
-  else if (!require('proper-lockfile').checkSync(lockTemp)) {
+  else if (!require('proper-lockfile').checkSync(lockTemp, {stale: 30 * 1000})) {
     is_stale = true;
-    require('proper-lockfile').lockSync(lockTemp);
+    require('proper-lockfile').lockSync(lockTemp, {stale: 30 * 1000});
   }
   if (!require('fs').existsSync(transpiledTemp) || is_stale) {
     require('fs').writeFileSync(transpiledTemp, '"":""');
@@ -89,13 +90,14 @@ const applyTransform = (p, t, state, value, calleeName, moduleString) => {
   }
   if (moduleCache[filePath]) return moduleString.replaceWith(t.StringLiteral(moduleCache[filePath]))
   const fullPath = filePath
-  const [temp, tempFile] = getTemp(rootPath)
+  let [temp, tempFile] = getTemp(rootPath)
+  if (process.platform === 'win32') tempFile = tempFile.split('\\').join('\\\\');
   const tempPath = openSync({dir: tempDir, suffix: '.js'}).path
   const newTempPath = openSync({dir: tempDir, suffix: '.js'}).path
   let python_code = require('fs').readFileSync(fullPath).toString()
   python_code = python_code.replace(/await /g, 'awaits + ')
   try {
-    require('child_process').execSync(process.execPath + ' ' + join(require.resolve('rapydscript-ng'), '../../bin/rapydscript') + ' compile -m  -o ' + tempPath, {input: python_code})
+    require('child_process').spawnSync(process.execPath , [join(require.resolve('rapydscript-ng'), '../../bin/rapydscript'), 'compile', '-m',  '-o',  tempPath], {input: python_code})
   }
   catch (error) {
     //console.error('Failed to transpile ' + fullPath)
@@ -116,7 +118,7 @@ const applyTransform = (p, t, state, value, calleeName, moduleString) => {
     let python_code = require('fs').readFileSync(fullPath).toString()
     python_code = python_code.replace(/await /g, 'awaits + ')
     try {
-      require('child_process').execSync(process.execPath + ' ' + join(require.resolve('rapydscript-ng'), '../../bin/rapydscript') + ' compile -m  -o ' + newTempPath, {input: python_code})
+      require('child_process').spawnSync(process.execPath , [join(require.resolve('rapydscript-ng'), '../../bin/rapydscript'), 'compile', '-m',  '-o',  newTempPath], {input: python_code})
     }
     catch (error) {
       throw new Error('Failed to transpile ' + fullPath + '\n' + error.toString());
