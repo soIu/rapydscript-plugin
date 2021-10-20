@@ -29,7 +29,6 @@ const openSync = (options) => {
   delete options.suffix;
   const path = require('temp').path(options).split('.').map(replace_dot).join('') + suffix;
   require('fs').writeFileSync(path, '');
-  console.log(path);
   return {path};
 }
 
@@ -114,18 +113,18 @@ const applyTransform = (p, t, state, value, calleeName, moduleString) => {
   appendTranspiled(tempPath, fullPath);
   if ((!process.env.BABEL_ENV || process.env.BABEL_ENV !== 'development') && (!process.env.NODE_ENV || process.env.NODE_ENV !== 'development')) return
   require('fs').watchFile(fullPath, () => {
-    console.log('\n' + fullPath + ' changes, recompiling...\n')
-    let python_code = require('fs').readFileSync(fullPath).toString()
-    python_code = python_code.replace(/await /g, 'awaits + ')
     try {
+      console.log('\n' + fullPath + ' changes, recompiling...\n')
+      let python_code = require('fs').readFileSync(fullPath).toString()
+      python_code = python_code.replace(/await /g, 'awaits + ')
       require('child_process').spawnSync(process.execPath , [join(require.resolve('rapydscript-ng'), '../../bin/rapydscript'), 'compile', '-m',  '-o',  newTempPath], {input: python_code})
+      code = require('fs').readFileSync(newTempPath).toString().replace(/awaits \+ /g, 'void ')
+      code = 'require("' + tempFile + '")(module, module.exports, function (' + module_variables + ') {\n' + code + '\n});'
+      require('fs').writeFileSync(tempPath, code)
     }
     catch (error) {
       throw new Error('Failed to transpile ' + fullPath + '\n' + error.toString());
     }
-    code = require('fs').readFileSync(newTempPath).toString().replace(/awaits \+ /g, 'void ')
-    code = 'require("' + tempFile + '")(module, module.exports, function (' + module_variables + ') {\n' + code + '\n});'
-    require('fs').writeFileSync(tempPath, code)
   });
 }
 
