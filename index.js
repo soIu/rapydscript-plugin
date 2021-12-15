@@ -95,13 +95,9 @@ const applyTransform = (p, t, state, value, calleeName, moduleString) => {
   const newTempPath = openSync({dir: tempDir, suffix: '.js'}).path
   let python_code = require('fs').readFileSync(fullPath).toString()
   python_code = python_code.replace(/await /g, 'awaits + ')
-  try {
-    require('child_process').spawnSync(process.execPath , [join(require.resolve('rapydscript-ng'), '../../bin/rapydscript'), 'compile', '-m',  '-o',  tempPath], {input: python_code})
-  }
-  catch (error) {
-    //console.error('Failed to transpile ' + fullPath)
-    //throw error
-    throw new Error('Failed to transpile ' + fullPath + '\n' + error.toString());
+  const out = require('child_process').spawnSync(process.execPath , [join(require.resolve('rapydscript-ng'), '../../bin/rapydscript'), 'compile', '-m',  '-o',  tempPath], {input: python_code});
+  if (out.stderr && out.stderr.toString()) {
+    throw /*new Error*/p.buildCodeFrameError('Failed to transpile ' + fullPath + '\n' + out.stderr.toString());
   }
   let code = require('fs').readFileSync(tempPath).toString().replace(/awaits \+ /g, 'void ')
   code = 'require("' + tempFile + '")(module, module.exports, function (' + module_variables + ') {\n' + code + '\n});'
@@ -117,13 +113,14 @@ const applyTransform = (p, t, state, value, calleeName, moduleString) => {
       console.log('\n' + fullPath + ' changes, recompiling...\n')
       let python_code = require('fs').readFileSync(fullPath).toString()
       python_code = python_code.replace(/await /g, 'awaits + ')
-      require('child_process').spawnSync(process.execPath , [join(require.resolve('rapydscript-ng'), '../../bin/rapydscript'), 'compile', '-m',  '-o',  newTempPath], {input: python_code})
+      const out = require('child_process').spawnSync(process.execPath , [join(require.resolve('rapydscript-ng'), '../../bin/rapydscript'), 'compile', '-m',  '-o',  newTempPath], {input: python_code})
+      if (out.stderr && out.stderr.toString()) throw new Error(out.stderr.toString());
       code = require('fs').readFileSync(newTempPath).toString().replace(/awaits \+ /g, 'void ')
       code = 'require("' + tempFile + '")(module, module.exports, function (' + module_variables + ') {\n' + code + '\n});'
       require('fs').writeFileSync(tempPath, code)
     }
     catch (error) {
-      throw new Error('Failed to transpile ' + fullPath + '\n' + error.toString());
+      console.error(p.buildCodeFrameError('Failed to transpile ' + fullPath + '\n' + error.toString()));
     }
   });
 }
