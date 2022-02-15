@@ -60,7 +60,7 @@ Because we use Kovid Goyal's [fork](https://github.com/kovidgoyal/rapydscript-ng
 def do_something_async():
     response = await fetch('/some/route')
     text = await response.text()
-    returnt text
+    return text
     
 do_something_async().then(console.log)
 ```
